@@ -681,7 +681,7 @@ router.post('/checkOutDay', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE days =0 and DATE_FORMAT(created_date, '%Y-%m-%d')=CURDATE()";
+        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE days =0 and DATE_FORMAT(created_date, '%Y-%m-%d')=CURDATE() and discount_yn='N'";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -700,8 +700,8 @@ router.post('/checkOutDay', function (req, res) {
     });
 });
 
-// pulling all Checkout reports for A week
-router.post('/checkOutWeek', function (req, res) {
+// pulling all Checkout reports for A Day
+router.post('/checkOutDayDiscount', function (req, res) {
 
     var token = req.body.token;
     if (!token) return res.status(401).send({
@@ -716,7 +716,7 @@ router.post('/checkOutWeek', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT * FROM all_check_out_reports WHERE days BETWEEN 0 AND 7";
+        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE days =0 and DATE_FORMAT(created_date, '%Y-%m-%d')=CURDATE() and discount_yn='Y'";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -734,6 +734,76 @@ router.post('/checkOutWeek', function (req, res) {
         });
     });
 });
+
+// all checkin Today
+router.post('/checkInDay', function (req, res) {
+
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
+            });
+        }
+        var sql = "SELECT * FROM pharmacy.all_check_in_reports WHERE days =0 and DATE_FORMAT(created_date, '%Y-%m-%d')=CURDATE()";
+        connAttrs.query(sql, function (error, results) {
+            if (error || results.length < 1) {
+                res.set('Content-Type', 'application/json');
+                var status = error ? 500 : 404;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: error ? "Error getting the server" : "No Records found",
+                    detailed_message: error ? error.message : "Sorry there are no Records Found set."
+                }));
+                return (error);
+            }
+
+            res.contentType('application/json').status(200).send(JSON.stringify(results));
+            console.log(`Checkin Record selection Released succesfullly by ${decoded.username} on ${new Date()}`);
+        });
+    });
+});
+
+// all checkin 
+router.post('/allcheckInReport', function (req, res) {
+
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
+            });
+        }
+        var sql = "SELECT * FROM pharmacy.all_check_in_reports";
+        connAttrs.query(sql, function (error, results) {
+            if (error || results.length < 1) {
+                res.set('Content-Type', 'application/json');
+                var status = error ? 500 : 404;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: error ? "Error getting the server" : "No Records found",
+                    detailed_message: error ? error.message : "Sorry there are no Records Found set."
+                }));
+                return (error);
+            }
+
+            res.contentType('application/json').status(200).send(JSON.stringify(results));
+            console.log(`Checkin Record selection Released succesfullly by ${decoded.username} on ${new Date()}`);
+        });
+    });
+})
 
 // pulling all Checkout reports for A day
 router.post('/checkOutMonth', function (req, res) {
@@ -824,7 +894,7 @@ router.post('/checkOutWeekChart', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT item name, amountSold value FROM pharmacy.all_check_out_reports WHERE days BETWEEN 0 AND 7";
+        var sql = "SELECT item name, amountSold value FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -861,7 +931,7 @@ router.post('/checkOutMonthChart', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT item name, amountSold value FROM pharmacy.all_check_out_reports WHERE days BETWEEN 0 AND 31";
+        var sql = "SELECT item name, amountSold value FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1389,7 +1459,7 @@ router.post('/userWeeklyAdminView', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
+        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) AND discount_yn='N' ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql,decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1425,7 +1495,7 @@ router.post('/userMonthlyAdminView', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
+        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) AND discount_yn='N' ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql,decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
