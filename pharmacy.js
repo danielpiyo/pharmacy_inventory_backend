@@ -22,7 +22,7 @@ app.use('/api', api);
 // catch all other routers and return to index
 app.get('*', (req, res) =>{
     // res.sendFile('localhost:4200')
-    res.sendFile(path.join(__dirname, './wrong.html'));
+    res.sendFile(path.join(__dirname, './index.html'));
 });
 
 // get port from environment and stroe in express

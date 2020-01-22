@@ -5,7 +5,6 @@ const mysql = require('mysql');
 const bcrypt = require('bcrypt-nodejs');
 const jwt = require('jsonwebtoken');
 const config = require(__dirname + '/config.js');
-const nodemailer = require('nodemailer');
 
 // Use body parser to parse JSON body
 router.use(bodyParser.json());
@@ -856,7 +855,7 @@ router.post('/checkOutWeekChart', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT item name, amountSold value FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) ORDER BY created_date DESC";
+        var sql = "SELECT item name, amountSold value FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -892,7 +891,7 @@ router.post('/checkOutMonthChart', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT item name, amountSold value FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) ORDER BY created_date DESC";
+        var sql = "SELECT item name, amountSold value FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1168,7 +1167,7 @@ router.post('/updateItem', function (req, res) {
                 return (error);
             }
 
-            res.contentType('application/json').status(201).send(JSON.stringify(result));
+            res.contentType('application/json').status(200).send(JSON.stringify(result));
             console.log(`Item : ${itemToUpdate.item_name_from}, has been Edited succesfullly by ${decoded.username} on ${new Date()}`);
         });
     });
@@ -1451,7 +1450,7 @@ router.post('/userDaily', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE createdBy =? AND DATE_FORMAT(created_date, '%Y-%m-%d') = curdate() ORDER BY created_date DESC";
+        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE createdBy =? AND DATE_FORMAT(created_date, '%Y-%m-%d') = curdate() ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1487,7 +1486,7 @@ router.post('/userWeekly', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE createdBy = ? AND created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) ORDER BY created_date DESC";
+        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE createdBy = ? AND created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1523,7 +1522,7 @@ router.post('/userMonthly', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE createdBy =? AND created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) ORDER BY created_date DESC";
+        var sql = "SELECT * FROM pharmacy.all_check_out_reports WHERE createdBy =? AND created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1559,7 +1558,7 @@ router.post('/userWeeklyAdminView', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) AND discounted='N' ORDER BY created_date DESC";
+        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) AND discounted='N' ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1595,7 +1594,7 @@ router.post('/userMonthlyAdminView', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) AND discounted='N' ORDER BY created_date DESC";
+        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) AND discounted='N' ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1631,7 +1630,7 @@ router.post('/userWeeklyAdminViewGeneral', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) ORDER BY created_date DESC";
+        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1667,7 +1666,7 @@ router.post('/userMonthlyAdminViewGeneral', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) ORDER BY created_date DESC";
+        var sql = "SELECT  * FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) ORDER BY DATE_FORMAT(created_date, '%Y-%m-%d') DESC";
         connAttrs.query(sql, decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1702,7 +1701,7 @@ router.post('/adminViewLogs', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT  * FROM pharmacy.all_logs order by created_date desc";
+        var sql = "SELECT  * FROM pharmacy.all_logs";
         connAttrs.query(sql, decoded.username, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1711,160 +1710,6 @@ router.post('/adminViewLogs', function (req, res) {
                     status: status,
                     message: error ? "Error getting the server" : "No Logs found",
                     detailed_message: error ? error.message : "Sorry there are no Records logs found."
-                }));
-                return (error);
-            }
-
-
-            res.contentType('application/json').status(200).send(JSON.stringify(results));
-
-        });
-    });
-});
-
-// sending mail to admin when stock go low
-router.post('/sendMail', function (req, res) {
-
-    var token = req.body.token;
-    var dataToMail = {
-        id : req.body.id,
-        itemName : req.body.itemName,
-        category : req.body.category,
-        quantity : req.body.quantity,
-        buying_price : req.body.buying_price,
-        price : req.body.price,
-        checkedIn_date : req.body.checkedIn_date,
-        valueOfItems : req.body.valueOfItems,
-        totalSold : req.body.totalSold,
-        checkedIn_quantity : req.body.checkedIn_quantity,
-        expected_total_sale : req.body.expected_total_sale,
-        email: req.body.email,
-        username: req.body.username
-    }
-    if (!token) return res.status(401).send({
-        auth: false,
-        message: 'No token provided.'
-    });
-
-    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
-        if (err) {
-            return res.status(500).send({
-                auth: false,
-                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
-            });
-        }
-        //  mail
-        var mailSender = 'trialdspace.zyptech@gmail.com';
-
-        var mail = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: mailSender,
-                pass: 'dspace@123456?'
-            }
-        });
-
-        var mailOptions = {
-            from: mailSender,
-            to: dataToMail.email,
-            subject: 'Product Runing Out of stock',
-            html: `<div style="border-color: #337ab7; border-radius:6px; border: 0px solid #337ab7;">
-            <div style=" padding: 5px 5px; border-bottom: 1px solid transparent; border-top-left-radius: 3px;
-             border-top-right-radius: 3px; color: #fff; background-color: #337ab7; border-color: #337ab7;">
-         <h2 style="color:black">Zyptech INVOPOS</h2>
-         </div>
-         <h3>Dear ${dataToMail.username},</h3>
-         <p>${dataToMail.itemName}, is running out of stock, please consinder restocking it.</p>
-         <p>Below is a breakdown on how it was sold</p>
-         <table style="width:100%;  border-collapse: collapse;">
-                    <tr style="background-color: black; color: white">
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Product</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Buying Price</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Selling Price</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Current Quantity</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Quantity Checkedin</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Checkin Date</th>                        
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Amount Sold</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Expected Sale</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Value Remaining</th>                        
-                    </tr>
-                    <tr style="background-color: white; color: black">
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.itemName}</td> 
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.buying_price}</td>
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.price}</td>
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.quantity}</td>
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.checkedIn_quantity}</td>
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.checkedIn_date}</td>                        
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.totalSold}</td>
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.expected_total_sale}</td>
-                        <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.valueOfItems}</td>                        
-                    </tr>
-
-        </table> <hr>
-         <small>Send by, <br> ${decoded.username}</small>
-         <hr>
-         </div>       
-         `
-            //  ,
-            //  attachments: [{
-            //      filename: 'text1.txt',
-            //      content: 'hello world!'
-            //  }]
-        }
-
-        mail.sendMail(mailOptions, function (error, info) {
-            if (error) {
-                console.log(error);
-            } else {
-                console.log('Email sent: ' + info.response);
-
-                var sql = "UPDATE p_items SET mail_sent_yn='Y' WHERE id=?";
-                connAttrs.query(sql, dataToMail.id, function (error, results) {
-                    if (error) {
-                        res.set('Content-Type', 'application/json');
-                        var status = 500;
-                        res.status(status).send(JSON.stringify({
-                            status: status,
-                            message: "Error Sending the mail",
-                            detailed_message: error
-                        }));
-                        return (error);
-                    }
-
-
-                    res.contentType('application/json').status(201).send(JSON.stringify(results));
-
-                });
-            }
-        });
-    });
-});
-
-// getting admin details to send mail to
-router.post('/adminDetails', function (req, res) {
-
-    var token = req.body.token;
-    if (!token) return res.status(401).send({
-        auth: false,
-        message: 'No token provided.'
-    });
-
-    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
-        if (err) {
-            return res.status(500).send({
-                auth: false,
-                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
-            });
-        }
-        var sql = "SELECT  email, username FROM p_users where role='admin'";
-        connAttrs.query(sql, decoded.username, function (error, results) {
-            if (error || results.length < 1) {
-                res.set('Content-Type', 'application/json');
-                var status = error ? 500 : 404;
-                res.status(status).send(JSON.stringify({
-                    status: status,
-                    message: error ? "Error getting the server" : "No Adminfound",
-                    detailed_message: error ? error.message : "Sorry there are no Records admin found."
                 }));
                 return (error);
             }
