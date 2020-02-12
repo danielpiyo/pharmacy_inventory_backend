@@ -218,7 +218,10 @@ router.post('/newItem', function (req, res) {
         buying_price: req.body.buying_price,
         price: req.body.price,
         description: req.body.description,
-        discount_yn: req.body.discount_yn
+        discount_yn: req.body.discount_yn,
+        contolled_status: req.body.contolled_status,
+        suplier: req.body.suplier,
+        expire_date: req.body.expire_date
     }
     // token
     var token = req.body.token;
@@ -243,8 +246,11 @@ router.post('/newItem', function (req, res) {
             discount_yn: items.discount_yn,
             buying_price: items.buying_price,
             price: items.price,
+            contolled_status: items.contolled_status,
+            suplier: items.suplier,
             purchase_cost: (items.quantity * items.buying_price),
-            worth_value: (items.quantity * items.price)
+            worth_value: (items.quantity * items.price),
+            expire_date: items.expire_date
         }, function (error, results) {
             if (error) {
                 res.set('Content-Type', 'application/json');
@@ -315,7 +321,7 @@ router.post('/items', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT A.id, A.category_id, B.category_name category, A.name, A.quantity, A.buying_price, A.price, A.description, A.created_date, C.username createdBy  FROM p_items A inner join p_category B on A.category_id=B.id inner join p_users C on A.created_by=C.id where A.quantity > 0 and A.deleted_yn='N'";
+        var sql = "SELECT * from vw_items_for_sale_normal";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -334,9 +340,8 @@ router.post('/items', function (req, res) {
     });
 });
 
-
-// pulling all the items
-router.post('/allitems', function (req, res) {
+// pulling expired Items
+router.post('/ExpiredItems', function (req, res) {
 
     var token = req.body.token;
     if (!token) return res.status(401).send({
@@ -351,7 +356,42 @@ router.post('/allitems', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT A.id, A.category_id, B.category_name category, A.name, A.quantity, A.buying_price, A.price, A.purchase_cost, A.worth_value, A.discount_yn, A.description, A.created_date, C.username createdBy  FROM p_items A inner join p_category B on A.category_id=B.id inner join p_users C on A.created_by=C.id WHERE A.deleted_yn='N'";
+        var sql = "SELECT * from vw_items_expired";
+        connAttrs.query(sql, function (error, results) {
+            if (error || results.length < 1) {
+                res.set('Content-Type', 'application/json');
+                var status = error ? 500 : 404;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: error ? "Error getting the server" : "No Items or products found Expired",
+                    detailed_message: error ? error.message : "Sorry there are no Products Eapired. Please Keep Checking"
+                }));
+                return (error);
+            }
+
+            res.contentType('application/json').status(200).send(JSON.stringify(results));
+            console.log(`All Expired Items selection Released succesfullly by ${decoded.username} on ${new Date()}`);
+        });
+    });
+});
+
+// pulling all the items
+router.post('/allitems', function (req, res) {
+
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.' 
+            });
+        }
+        var sql = "SELECT * from vw_all_items";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -386,7 +426,7 @@ router.post('/allitemsDiscount', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT A.id, A.category_id, B.category_name category, A.name, A.quantity, A.buying_price, A.price, A.discount_yn, A.description, A.created_date, C.username createdBy  FROM p_items A inner join p_category B on A.category_id=B.id inner join p_users C on A.created_by=C.id WHERE A.discount_yn='Y' AND A.deleted_yn='N'";
+        var sql = "select * from vw_items_for_sale_discounted";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -502,7 +542,8 @@ router.post('/checkIn', function (req, res) {
         item_id: req.body.item_id,
         quantity_from: req.body.quantity_from,
         quantity_to: req.body.quantity_to,
-        item_price: req.body.item_price
+        item_price: req.body.item_price,
+        buying_price: req.body.buying_price
     }
     var token = req.body.token;
     if (!token) return res.status(401).send({
@@ -525,7 +566,8 @@ router.post('/checkIn', function (req, res) {
             log_name: 'Check In',
             quantity_from: check_in.quantity_from,
             quantity_to: check_in.quantity_to,
-            value_added_items: (check_in.quantity_to - check_in.quantity_from) * check_in.item_price
+            value_added_items: (check_in.quantity_to - check_in.quantity_from) * check_in.item_price,
+            cost_incured : (check_in.quantity_to - check_in.quantity_from) * check_in.buying_price
         }, function (error, result) {
             if (error) {
                 res.set('Content-Type', 'application/json');
@@ -1781,12 +1823,12 @@ router.post('/sendMail', function (req, res) {
                         <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Product</th>
                         <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Buying Price</th>
                         <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Selling Price</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Current Quantity</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Quantity Checkedin</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Checkin Date</th>                        
+                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Current Stock</th>
+                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Stock Added</th>
+                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Last Stocked</th>                        
                         <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Amount Sold</th>
                         <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Expected Sale</th>
-                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Value Remaining</th>                        
+                        <th style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">Worth InStore</th>                        
                     </tr>
                     <tr style="background-color: white; color: black">
                         <td style="border: 1.5px solid #ccc; padding: 10px; text-align: left;">${dataToMail.itemName}</td> 
@@ -1801,7 +1843,7 @@ router.post('/sendMail', function (req, res) {
                     </tr>
 
         </table> <hr>
-         <small>Send by, <br> ${decoded.username}</small>
+         <small>This is a system generated mail. Please do not reply to it</small>
          <hr>
          </div>       
          `
@@ -1872,6 +1914,230 @@ router.post('/adminDetails', function (req, res) {
 
             res.contentType('application/json').status(200).send(JSON.stringify(results));
 
+        });
+    });
+});
+
+
+// getting sales details
+router.post('/salesSummaryMonth', function (req, res) {
+
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
+            });
+        }
+        var sql = "SELECT * FROM vw_sales_summary_ph";
+        connAttrs.query(sql, decoded.username, function (error, results) {
+            if (error || results.length < 1) {
+                res.set('Content-Type', 'application/json');
+                var status = error ? 500 : 404;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: error ? "Error getting the server" : "No Sales found",
+                    detailed_message: error ? error.message : "Sorry there are no sales found."
+                }));
+                return (error);
+            }
+
+
+            res.contentType('application/json').status(200).send(JSON.stringify(results));
+
+        });
+    });
+});
+
+// getting AllExpences
+router.post('/allExpences', function (req, res) {
+
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
+            });
+        }
+        var sql = "SELECT * FROM p_expences order by expence_id desc";
+        connAttrs.query(sql, decoded.username, function (error, results) {
+            if (error || results.length < 1) {
+                res.set('Content-Type', 'application/json');
+                var status = error ? 500 : 404;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: error ? "Error getting the server" : "No Expences found",
+                    detailed_message: error ? error.message : "Sorry there are no Expences found yet."
+                }));
+                return (error);
+            }
+
+
+            res.contentType('application/json').status(200).send(JSON.stringify(results));
+
+        });
+    });
+});
+
+// getting Monthly Expences
+router.post('/monthlyExpences', function (req, res) {
+
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
+            });
+        }
+        var sql = "SELECT expence_name name, expence_amount value FROM p_expences where created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) order by expence_id desc";
+        connAttrs.query(sql, decoded.username, function (error, results) {
+            if (error || results.length < 1) {
+                res.set('Content-Type', 'application/json');
+                var status = error ? 500 : 404;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: error ? "Error getting the server" : "No Expences found",
+                    detailed_message: error ? error.message : "Sorry there are no Expences found yet."
+                }));
+                return (error);
+            }
+
+
+            res.contentType('application/json').status(200).send(JSON.stringify(results));
+
+        });
+    });
+});
+
+// getting Monthly cost
+router.post('/monthlyCost', function (req, res) {
+
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
+            });
+        }
+        var sql = "SELECT * FROM vw_monthly_cost";
+        connAttrs.query(sql, decoded.username, function (error, results) {
+            if (error || results.length < 1) {
+                res.set('Content-Type', 'application/json');
+                var status = error ? 500 : 404;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: error ? "Error getting the server" : "No Monthly cost found",
+                    detailed_message: error ? error.message : "Sorry there are no Monthly cost found yet."
+                }));
+                return (error);
+            }
+
+
+            res.contentType('application/json').status(200).send(JSON.stringify(results));
+
+        });
+    });
+});
+
+// getting Monthly Sales
+router.post('/monthlySales', function (req, res) {
+
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
+            });
+        }
+        var sql = "SELECT * FROM vw_monthly_sales";
+        connAttrs.query(sql, decoded.username, function (error, results) {
+            if (error || results.length < 1) {
+                res.set('Content-Type', 'application/json');
+                var status = error ? 500 : 404;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: error ? "Error getting the server" : "No Monthly Sales found",
+                    detailed_message: error ? error.message : "Sorry there are no Monthly Sales found yet."
+                }));
+                return (error);
+            }
+
+
+            res.contentType('application/json').status(200).send(JSON.stringify(results));
+
+        });
+    });
+});
+
+// posting new Expence
+router.post('/newExpence', function (req, res) {
+    var expence = {
+       expence_name: req.body.expence_name,
+       expence_amount: req.body.expence_amount,
+       details: req.body.details
+    }
+    var token = req.body.token;
+    if (!token) return res.status(401).send({
+        auth: false,
+        message: 'No token provided.'
+    });
+
+    jwt.verify(token, config.jwtSecretKey, function (err, decoded) {
+        if (err) {
+            return res.status(500).send({
+                auth: false,
+                message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
+            });
+        }
+        var sql = "INSERT INTO p_expences SET?";
+        connAttrs.query(sql, {
+            expence_name: expence.expence_name,
+            expence_amount: expence.expence_amount,
+            details: expence.details
+        }, function (error, result) {
+            if (error) {
+                res.set('Content-Type', 'application/json');
+                var status = 500;
+                res.status(status).send(JSON.stringify({
+                    status: status,
+                    message: "Error getting the server",
+                    detailed_message: error
+                }));
+                return (error);
+            }
+
+            res.contentType('application/json').status(201).send(JSON.stringify(result));
+            console.log(`New Expence : ${expence.expence_name}, has been Added succesfullly by ${decoded.username} on ${new Date()}`);
         });
     });
 });
