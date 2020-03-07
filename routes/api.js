@@ -1340,7 +1340,7 @@ router.post('/userPerfomanceWeek', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT DISTINCT createdBy AS name, SUM(DISTINCT amountSOld) value FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) GROUP BY createdBy;";
+        var sql = "SELECT DISTINCT createdBy AS name, SUM(amountSOld) value FROM pharmacy.all_check_out_reports WHERE created_date <= adddate(curdate(), INTERVAL 7-DAYOFWEEK(curdate()) DAY) AND created_date >= adddate(curdate(), INTERVAL 1-DAYOFWEEK(curdate()) DAY) GROUP BY createdBy;";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
@@ -1376,7 +1376,7 @@ router.post('/userPerfomanceMonth', function (req, res) {
                 message: 'Sorry Your Token is not genuine. Failed to authenticate token.'
             });
         }
-        var sql = "SELECT DISTINCT createdBy AS name, SUM(DISTINCT amountSOld) value FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) GROUP BY createdBy";
+        var sql = "SELECT DISTINCT createdBy AS name, SUM(amountSOld) value FROM pharmacy.all_check_out_reports WHERE created_date <= LAST_DAY(curdate()) AND created_date >= date_add(date_add(LAST_DAY(curdate()),interval 1 DAY),interval -1 MONTH) GROUP BY createdBy";
         connAttrs.query(sql, function (error, results) {
             if (error || results.length < 1) {
                 res.set('Content-Type', 'application/json');
