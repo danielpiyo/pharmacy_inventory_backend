@@ -28,13 +28,13 @@ router.post('/signin', function (req, res) {
             message: 'Please provide login details'
         });
     }
-    connAttrs.query("SELECT * FROM p_users where email=? AND deleted_yn ='N'", user1.email, function (error, result) {
+    connAttrs.query("SELECT password, email, id, username, role, DATE_FORMAT(dade_date, '%Y-%m-%d') dade_date FROM p_users where email=? AND deleted_yn ='N' AND (dade_date - curdate()) > 0", user1.email, function (error, result) {
         if (error || result < 1) {
             res.set('Content-Type', 'application/json');
             var status = error ? 500 : 404;
             res.status(status).send(JSON.stringify({
                 status: status,
-                message: error ? "Error getting the that email" : "Email you have entered is Incorrect. Kindly Try Again. or Contact systemadmin",
+                message: error ? "Error getting the that email" : "Invalid Credentials.Please try again or Contact systemadmin",
                 detailed_message: error ? error.message : ""
             }));
             console.log('========= You have Got an error ================ for this User: ' + user1.email);
@@ -58,13 +58,15 @@ router.post('/signin', function (req, res) {
                     sub: user.email,
                     entity_id: user.id,
                     username: user.username,
-                    role: user.role
+                    role: user.role,
+                    close_date: user.dade_date
                 };
 
                 res.status(200).json({
                     user: {
                         username: user.username,
-                        role: user.role
+                        role: user.role,
+                        dade_date: user.dade_date
                     },
                     token: jwt.sign(payload, config.jwtSecretKey, {
                         expiresIn: 60 * 60 * 24
@@ -99,7 +101,8 @@ router.post('/register', function post(req, res, next) { //
             created_by: decoded.username,
             username: req.body.username,
             email: req.body.email,
-            role: req.body.role
+            role: req.body.role,
+            dade_date: decoded.close_date
         };
         var unhashedPassword = req.body.password;
         bcrypt.genSalt(10, function (err, salt) {
@@ -133,7 +136,8 @@ router.post('/register', function post(req, res, next) { //
                             email: user.email,
                             username: user.username,
                             password: user.hashedPassword,
-                            created_by: user.created_by
+                            created_by: user.created_by,
+                            dade_date:user.dade_date
                         }, function (error, results) {
                             if (error) {
                                 res.set('Content-Type', 'application/json');
